@@ -3,7 +3,7 @@ class BHA {
     unitLength = 16;
     basicNumbers = [];
     defaultKeys = [];
-    constructor({unitCount=16,unitLength=16,defaultKeys=[]}={}){
+    constructor({ unitCount = 16, unitLength = 16, defaultKeys = [] } = {}) {
         this.unitCount = unitCount;
         this.unitLength = unitLength;
         this.defaultKeys = defaultKeys;
@@ -16,26 +16,40 @@ class BHA {
             }
             return hashBasicNumbers;
         })();
+
+        if(this.unitLength % 2 != 0){
+            this.unitLength += 1;
+        }
     }
-    encrypt(input,...key){
+    encrypt(input, ...key) {
+        if (!input) throw new TypeError('Input cannot be converted into a true string!');
         key.unshift(...this.defaultKeys);
-        let hashes = [...this.basicNumbers], calcRange = this.unitCount + key.length;
-        key.filter(v => Number.isInteger(v)).forEach(v => hashes.splice(v % this.unitCount, 0, v));
-        let cutted = input, basix = 0, symbols = [], index = 0;
-        [...cutted].forEach(v => basix += v.charCodeAt(0));
+        let keys = [...this.basicNumbers], calcRange = this.unitCount + key.length + 1;
+        key.filter(v => Number.isInteger(v)).forEach(v => keys.splice(v % this.unitCount, 0, v));
+        let cutted = input.toString(), basix = keys[cutted.length % keys.length], symbols = [], index = 0;
+        [...cutted].forEach(v => basix += v.charCodeAt(0) + cutted.charCodeAt(basix % cutted.length));
+        keys.push(basix);
         for (let i = 0; i < this.unitCount; i++) symbols[i] = 0;
-        for (let i = 0; cutted.length < 4 * this.unitCount + input.length; i++) cutted = cutted.slice(0, i) + Math.sin(basix * i).toString(16).charAt(3) + cutted.slice(i);
-        [...cutted].forEach((v, i) => {
-            let charCode = v.charCodeAt(0);
-            basix += charCode;
+        let cutLen = this.unitLength * this.unitCount << 1;
+        for (let i = 0; cutted.length < cutLen; i++) {
+            let sectionStart = cutted.slice(0, i);
+            let sectionEnd = cutted.slice(i);
+            let section = (basix * i / Math.E << 10).toString(16);
+            cutted = i % 2 == 0
+                ? sectionEnd + section + sectionStart
+                : sectionStart + section + sectionEnd;
+        }
+        [...[...cutted].reverse()].forEach((v, i) => {
+            let charCode = Math.ceil(v.charCodeAt(0) * (i ** Math.SQRT2));
+            basix += ~charCode;
             if (index >= this.unitCount) index = 0;
-            symbols[index] += basix % charCode + Math.floor(hashes[i % calcRange] / ++index);
+            symbols[index] += Math.abs(basix % charCode + Math.floor(keys[i % calcRange] / ++index));
         });
         return [...symbols.splice(basix % this.unitCount).reverse(), ...symbols].map(v => {
-            let append = (Math.sqrt((hashes[v % calcRange] + v) * Math.SQRT2) ** Math.E % 1).toString(16).substring(2);
+            let append = (Math.sqrt((keys[v % calcRange] + v)) ** Math.E << 10).toString(16);
             while (append.length < this.unitLength) append = append.slice(0, 4) + Math.abs(Math.round(Math.sin(v * ++index) * (1 << 10))).toString(16) + append.slice(4);
-            let cutIndex = Math.ceil(append.length / 2), halfLength = Math.round(this.unitLength / 2);
-            return append.substring(cutIndex - halfLength, cutIndex + halfLength);
+            let cutIndex = Math.ceil(append.length / 2), halfLength = this.unitLength / 2;
+            return append.slice(cutIndex - halfLength, cutIndex + halfLength);
         });
     }
 }
