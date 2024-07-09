@@ -17,7 +17,7 @@ class BHA {
             return hashBasicNumbers;
         })();
 
-        if(this.unitLength % 2 != 0){
+        if (this.unitLength % 2 != 0) {
             this.unitLength += 1;
         }
     }
@@ -43,11 +43,11 @@ class BHA {
             let charCode = Math.ceil(v.charCodeAt(0) * (i ** Math.SQRT2));
             basix += ~charCode;
             if (index >= this.unitCount) index = 0;
-            symbols[index] += Math.abs(basix % charCode + Math.floor(keys[i % calcRange] / ++index));
+            symbols[index++] += Math.abs(basix % charCode << ~Math.floor(keys[i % calcRange] / index));
         });
-        return [...symbols.splice(basix % this.unitCount).reverse(), ...symbols].map(v => {
-            let append = (Math.sqrt((keys[v % calcRange] + v)) ** Math.E << 10).toString(16);
-            while (append.length < this.unitLength) append = append.slice(0, 4) + Math.abs(Math.round(Math.sin(v * ++index) * (1 << 10))).toString(16) + append.slice(4);
+        return symbols.map(v => {
+            let append = Math.abs((keys[v % calcRange] + v) << v ** 2).toString(16);
+            while (append.length < this.unitLength) append = append.slice(0, 4) + (v >>> 4 ** ++index).toString(16) + append.slice(4);
             let cutIndex = Math.ceil(append.length / 2), halfLength = this.unitLength / 2;
             return append.slice(cutIndex - halfLength, cutIndex + halfLength);
         });
